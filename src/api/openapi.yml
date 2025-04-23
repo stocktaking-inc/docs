@@ -1,0 +1,2416 @@
+openapi: 3.0.3
+info:
+  title: Inventory Management API
+  description: API для системы инвентаризации логистического/торгового микропредприятия. Коробочная версия для полного контроля склада. Использует JWT в cookie для авторизации.
+  version: 1.0.0
+  contact:
+    name: Support Team
+    email: support@inventory-system.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+servers:
+  - url: http://localhost:8080/v1
+    description: Local development server
+
+tags:
+  - name: Auth
+    description: Аутентификация и управление пользователями
+  - name: Products
+    description: Операции с товарами
+  - name: Categories
+    description: Операции с категориями товаров
+  - name: Warehouses
+    description: Операции со складами
+  - name: Inventory
+    description: Управление запасами
+  - name: Order
+    description: Обработка и управление заказами
+  - name: Supply
+    description: Управление поставками
+  - name: Reporting
+    description: Аналитика и отчеты по складским операциям
+  - name: Users
+    description: Управление пользователями и ролями
+
+components:
+  securitySchemes:
+    CookieAuth:
+      type: apiKey
+      in: cookie
+      name: jwt
+      description: JWT-токен хранится в HTTP-only cookie с именем 'jwt'. Токен содержит информацию о пользователе и его роли (ADMIN, MANAGER, EMPLOYEE).
+
+  schemas:
+    # Error response
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          example: INVALID_REQUEST
+        message:
+          type: string
+          example: Неверный запрос
+        details:
+          type: array
+          items:
+            type: string
+          example: ["Поле 'name' обязательно"]
+      required:
+        - code
+        - message
+
+    # Product schema
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Смартфон XYZ
+        sku:
+          type: string
+          example: XYZ123
+        description:
+          type: string
+          example: Высокопроизводительный смартфон
+        quantity:
+          type: integer
+          example: 100
+        price:
+          type: number
+          format: float
+          example: 299.99
+        categoryId:
+          type: integer
+          example: 1
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-04-23T10:00:00Z
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2025-04-23T10:00:00Z
+      required:
+        - id
+        - name
+        - sku
+        - quantity
+        - price
+        - categoryId
+
+    # Category schema
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Электроника
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-04-23T10:00:00Z
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2025-04-23T10:00:00Z
+      required:
+        - id
+        - name
+
+    # Warehouse schema
+    Warehouse:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Главный склад
+        address:
+          type: string
+          example: ул. Примерная, 123, Город
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-04-23T10:00:00Z
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2025-04-23T10:00:00Z
+      required:
+        - id
+        - name
+        - address
+
+    # Inventory schema
+    Inventory:
+      type: object
+      properties:
+        productId:
+          type: integer
+          example: 1
+        warehouseId:
+          type: integer
+          example: 1
+        quantity:
+          type: integer
+          example: 100
+        reserved:
+          type: integer
+          example: 10
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2025-04-23T10:00:00Z
+      required:
+        - productId
+        - warehouseId
+        - quantity
+
+    # Order schema
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        userId:
+          type: integer
+          example: 1
+        status:
+          type: string
+          enum: [PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED]
+          example: PENDING
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              productId:
+                type: integer
+                example: 1
+              quantity:
+                type: integer
+                example: 2
+              price:
+                type: number
+                format: float
+                example: 299.99
+            required:
+              - productId
+              - quantity
+              - price
+        totalAmount:
+          type: number
+          format: float
+          example: 599.98
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-04-23T10:00:00Z
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2025-04-23T10:00:00Z
+      required:
+        - id
+        - userId
+        - status
+        - items
+        - totalAmount
+
+    # Supply schema
+    Supply:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        supplierName:
+          type: string
+          example: TechSupplier Inc.
+        status:
+          type: string
+          enum: [ORDERED, IN_TRANSIT, RECEIVED, CANCELLED]
+          example: ORDERED
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              productId:
+                type: integer
+                example: 1
+              quantity:
+                type: integer
+                example: 50
+            required:
+              - productId
+              - quantity
+        expectedDelivery:
+          type: string
+          format: date-time
+          example: 2025-04-30T10:00:00Z
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-04-23T10:00:00Z
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2025-04-23T10:00:00Z
+      required:
+        - id
+        - supplierName
+        - status
+        - items
+        - expectedDelivery
+
+    # User schema
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        role:
+          type: string
+          enum: [ADMIN, MANAGER, EMPLOYEE]
+          example: EMPLOYEE
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-04-23T10:00:00Z
+      required:
+        - id
+        - email
+        - role
+
+    # Login request
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        password:
+          type: string
+          example: Password123!
+      required:
+        - email
+        - password
+
+    # Login response
+    LoginResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+      required:
+        - user
+
+    # Stock Report schema
+    StockReport:
+      type: object
+      properties:
+        warehouseId:
+          type: integer
+          example: 1
+        products:
+          type: array
+          items:
+            type: object
+            properties:
+              productId:
+                type: integer
+                example: 1
+              name:
+                type: string
+                example: Смартфон XYZ
+              sku:
+                type: string
+                example: XYZ123
+              quantity:
+                type: integer
+                example: 100
+              reserved:
+                type: integer
+                example: 10
+              lowStock:
+                type: boolean
+                example: false
+      required:
+        - warehouseId
+        - products
+
+    # Sales Report schema
+    SalesReport:
+      type: object
+      properties:
+        period:
+          type: string
+          example: 2025-04-01T00:00:00Z/2025-04-30T23:59:59Z
+        totalOrders:
+          type: integer
+          example: 150
+        totalRevenue:
+          type: number
+          format: float
+          example: 75000.50
+        topProducts:
+          type: array
+          items:
+            type: object
+            properties:
+              productId:
+                type: integer
+                example: 1
+              name:
+                type: string
+                example: Смартфон XYZ
+              unitsSold:
+                type: integer
+                example: 50
+              revenue:
+                type: number
+                format: float
+                example: 14999.50
+      required:
+        - period
+        - totalOrders
+        - totalRevenue
+
+    # Movement Report schema
+    MovementReport:
+      type: object
+      properties:
+        period:
+          type: string
+          example: 2025-04-01T00:00:00Z/2025-04-30T23:59:59Z
+        warehouseId:
+          type: integer
+          example: 1
+        movements:
+          type: array
+          items:
+            type: object
+            properties:
+              productId:
+                type: integer
+                example: 1
+              type:
+                type: string
+                enum: [INCOMING, OUTGOING, ADJUSTMENT]
+                example: INCOMING
+              quantity:
+                type: integer
+                example: 50
+              timestamp:
+                type: string
+                format: date-time
+                example: 2025-04-23T10:00:00Z
+      required:
+        - period
+        - warehouseId
+        - movements
+
+    # Supply Report schema
+    SupplyReport:
+      type: object
+      properties:
+        period:
+          type: string
+          example: 2025-04-01T00:00:00Z/2025-04-30T23:59:59Z
+        totalSupplies:
+          type: integer
+          example: 20
+        totalItems:
+          type: integer
+          example: 1000
+        supplies:
+          type: array
+          items:
+            type: object
+            properties:
+              supplyId:
+                type: integer
+                example: 1
+              supplierName:
+                type: string
+                example: TechSupplier Inc.
+              status:
+                type: string
+                enum: [ORDERED, IN_TRANSIT, RECEIVED, CANCELLED]
+                example: RECEIVED
+              totalQuantity:
+                type: integer
+                example: 50
+              expectedDelivery:
+                type: string
+                format: date-time
+                example: 2025-04-30T10:00:00Z
+      required:
+        - period
+        - totalSupplies
+        - totalItems
+
+paths:
+  # Authentication Service
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Вход пользователя
+      description: Аутентификация пользователя. Устанавливает JWT в HTTP-only cookie с информацией о пользователе и роли.
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Успешный вход, JWT установлен в cookie
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; HttpOnly; Secure; SameSite=Strict
+        "400":
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Неверные учетные данные
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /auth/me:
+    get:
+      tags:
+        - Auth
+      summary: Получить текущего пользователя
+      description: Возвращает информацию об аутентифицированном пользователе на основе JWT из cookie.
+      operationId: getCurrentUser
+      security:
+        - CookieAuth: []
+      responses:
+        "200":
+          description: Информация о пользователе
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /auth/register:
+    post:
+      tags:
+        - Auth
+      summary: Регистрация пользователя
+      description: Создает нового пользователя и устанавливает JWT в HTTP-only cookie. Только для админов.
+      operationId: registerUser
+      security:
+        - CookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: newuser@example.com
+                password:
+                  type: string
+                  example: Password123!
+                role:
+                  type: string
+                  enum: [ADMIN, MANAGER, EMPLOYEE]
+                  example: EMPLOYEE
+              required:
+                - email
+                - password
+                - role
+      responses:
+        "201":
+          description: Пользователь создан, JWT установлен в cookie
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; HttpOnly; Secure; SameSite=Strict
+        "400":
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Доступ запрещен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: Выход пользователя
+      description: Удаляет JWT из cookie.
+      operationId: logout
+      security:
+        - CookieAuth: []
+      responses:
+        "204":
+          description: Успешный выход, cookie удалена
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: jwt=; HttpOnly; Secure; SameSite=Strict; Max-Age=0
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # Product Service
+  /products/page/{page}/limit/{limit}:
+    get:
+      tags:
+        - Products
+      summary: Получить список товаров
+      description: Возвращает пагинированный список товаров с возможностью фильтрации по категории.
+      operationId: getProducts
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: page
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+        - name: limit
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            example: 10
+        - name: categoryId
+          in: query
+          schema:
+            type: integer
+        - name: search
+          in: query
+          schema:
+            type: string
+            example: смартфон
+      responses:
+        "200":
+          description: Список товаров
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  products:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Product"
+                  total:
+                    type: integer
+                    example: 100
+        "400":
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /products:
+    post:
+      tags:
+        - Products
+      summary: Создать товар
+      description: Создает новый товар в каталоге.
+      operationId: createProduct
+      security:
+        - CookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Смартфон XYZ
+                sku:
+                  type: string
+                  example: XYZ123
+                description:
+                  type: string
+                  example: Высокопроизводительный смартфон
+                quantity:
+                  type: integer
+                  example: 100
+                price:
+                  type: number
+                  format: float
+                  example: 299.99
+                categoryId:
+                  type: integer
+                  example: 1
+              required:
+                - name
+                - sku
+                - quantity
+                - price
+                - categoryId
+      responses:
+        "201":
+          description: Товар создан
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "400":
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /products/{id}:
+    get:
+      tags:
+        - Products
+      summary: Получить товар по ID
+      description: Возвращает информацию о товаре по его ID.
+      operationId: getProductById
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Информация о товаре
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Товар не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    put:
+      tags:
+        - Products
+      summary: Обновить товар
+      description: Обновляет существующий товар.
+      operationId: updateProduct
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Смартфон XYZ
+                sku:
+                  type: string
+                  example: XYZ123
+                description:
+                  type: string
+                  example: Высокопроизводительный смартфон
+                quantity:
+                  type: integer
+                  example: 100
+                price:
+                  type: number
+                  format: float
+                  example: 299.99
+                categoryId:
+                  type: integer
+                  example: 1
+              required:
+                - name
+                - quantity
+                - price
+                - categoryId
+      responses:
+        "200":
+          description: Товар обновлен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "400":
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Товар не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - Products
+      summary: Удалить товар
+      description: Удаляет товар по ID.
+      operationId: deleteProduct
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Товар удален
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Товар не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # Category Service
+  /categories/page/{page}/limit/{limit}:
+    get:
+      tags:
+        - Categories
+      summary: Получить список категорий
+      description: Возвращает пагинированный список всех категорий.
+      operationId: getCategories
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: page
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+        - name: limit
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            example: 10
+      responses:
+        "200":
+          description: Список категорий
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  categories:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Category"
+                  total:
+                    type: integer
+                    example: 50
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /categories:
+    post:
+      tags:
+        - Categories
+      summary: Создать категорию
+      description: Создает новую категорию товаров.
+      operationId: createCategory
+      security:
+        - CookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Электроника
+              required:
+                - name
+      responses:
+        "201":
+          description: Категория создана
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+        "400":
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /categories/{id}:
+    get:
+      tags:
+        - Categories
+      summary: Получить категорию по ID
+      description: Возвращает информацию о категории по её ID.
+      operationId: getCategoryById
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Информация о категории
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Категория не найдена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    put:
+      tags:
+        - Categories
+      summary: Обновить категорию
+      description: Обновляет существующую категорию.
+      operationId: updateCategory
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Электроника
+              required:
+                - name
+      responses:
+        "200":
+          description: Категория обновлена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+        "400":
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Категория не найдена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - Categories
+      summary: Удалить категорию
+      description: Удаляет категорию по ID.
+      operationId: deleteCategory
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Категория удалена
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Категория не найдена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # Warehouse Service
+  /warehouses/page/{page}/limit/{limit}:
+    get:
+      tags:
+        - Warehouses
+      summary: Получить список складов
+      description: Возвращает пагинированный список складов.
+      operationId: getWarehouses
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: page
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+        - name: limit
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            example: 10
+      responses:
+        "200":
+          description: Список складов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  warehouses:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Warehouse"
+                  total:
+                    type: integer
+                    example: 10
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /warehouses:
+    post:
+      tags:
+        - Warehouses
+      summary: Создать склад
+      description: Создает новый склад.
+      operationId: createWarehouse
+      security:
+        - CookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Главный склад
+                address:
+                  type: string
+                  example: ул. Примерная, 123, Город
+              required:
+                - name
+                - address
+      responses:
+        "201":
+          description: Склад создан
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Warehouse"
+        "400":
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /warehouses/{id}:
+    get:
+      tags:
+        - Warehouses
+      summary: Получить склад по ID
+      description: Возвращает информацию о складе по его ID.
+      operationId: getWarehouseById
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Информация о складе
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Warehouse"
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Склад не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    put:
+      tags:
+        - Warehouses
+      summary: Обновить склад
+      description: Обновляет существующий склад.
+      operationId: updateWarehouse
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Главный склад
+                address:
+                  type: string
+                  example: ул. Примерная, 123, Город
+              required:
+                - name
+                - address
+      responses:
+        "200":
+          description: Склад обновлен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Warehouse"
+        "400":
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Склад не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - Warehouses
+      summary: Удалить склад
+      description: Удаляет склад по ID.
+      operationId: deleteWarehouse
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Склад удален
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Склад не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # Inventory Service
+  /inventory/page/{page}/limit/{limit}:
+    get:
+      tags:
+        - Inventory
+      summary: Получить список запасов
+      description: Возвращает записи о запасах с возможностью фильтрации по товару или складу.
+      operationId: listInventory
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: page
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+        - name: limit
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            example: 10
+        - name: productId
+          in: query
+          schema:
+            type: integer
+        - name: warehouseId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Список записей о запасах
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  inventory:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Inventory"
+                  total:
+                    type: integer
+                    example: 100
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /inventory:
+    post:
+      tags:
+        - Inventory
+      summary: Обновить запасы
+      description: Обновляет количество запасов для товара на складе.
+      operationId: updateInventory
+      security:
+        - CookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                productId:
+                  type: integer
+                  example: 1
+                warehouseId:
+                  type: integer
+                  example: 1
+                quantity:
+                  type: integer
+                  example: 100
+                reserved:
+                  type: integer
+                  example: 10
+              required:
+                - productId
+                - warehouseId
+                - quantity
+      responses:
+        "200":
+          description: Запасы обновлены
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Inventory"
+        "400":
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Товар или склад не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /inventory/reserve:
+    post:
+      tags:
+        - Inventory
+      summary: Зарезервировать запасы
+      description: Резервирует количество товара для заказа.
+      operationId: reserveInventory
+      security:
+        - CookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                productId:
+                  type: integer
+                  example: 1
+                warehouseId:
+                  type: integer
+                  example: 1
+                quantity:
+                  type: integer
+                  example: 10
+              required:
+                - productId
+                - warehouseId
+                - quantity
+      responses:
+        "200":
+          description: Запасы зарезервированы
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Inventory"
+        "400":
+          description: Недостаточно запасов или неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Товар или склад не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /inventory/release:
+    post:
+      tags:
+        - Inventory
+      summary: Освободить зарезервированные запасы
+      description: Освобождает зарезервированное количество товара.
+      operationId: releaseInventory
+      security:
+        - CookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                productId:
+                  type: integer
+                  example: 1
+                warehouseId:
+                  type: integer
+                  example: 1
+                quantity:
+                  type: integer
+                  example: 10
+              required:
+                - productId
+                - warehouseId
+                - quantity
+      responses:
+        "200":
+          description: Запасы освобождены
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Inventory"
+        "400":
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Товар или склад не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # Order Service
+  /orders/page/{page}/limit/{limit}:
+    get:
+      tags:
+        - Order
+      summary: Получить список заказов
+      description: Возвращает пагинированный список заказов.
+      operationId: listOrders
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: page
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+        - name: limit
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            example: 10
+        - name: userId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED]
+      responses:
+        "200":
+          description: Список заказов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orders:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Order"
+                  total:
+                    type: integer
+                    example: 100
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /orders:
+    post:
+      tags:
+        - Order
+      summary: Создать заказ
+      description: Создает новый заказ с указанными позициями.
+      operationId: createOrder
+      security:
+        - CookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: integer
+                  example: 1
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      productId:
+                        type: integer
+                        example: 1
+                      quantity:
+                        type: integer
+                        example: 2
+                    required:
+                      - productId
+                      - quantity
+              required:
+                - userId
+                - items
+      responses:
+        "201":
+          description: Заказ создан
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "400":
+          description: Неверный запрос или недостаточно запасов
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /orders/{id}:
+    get:
+      tags:
+        - Order
+      summary: Получить заказ по ID
+      description: Возвращает информацию о заказе по его ID.
+      operationId: getOrder
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Информация о заказе
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Заказ не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      tags:
+        - Order
+      summary: Обновить статус заказа
+      description: Обновляет статус существующего заказа.
+      operationId: updateOrderStatus
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED]
+                  example: CONFIRMED
+              required:
+                - status
+      responses:
+        "200":
+          description: Статус заказа обновлен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "400":
+          description: Неверный статус
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Заказ не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - Order
+      summary: Отменить заказ
+      description: Отменяет существующий заказ и освобождает зарезервированные запасы.
+      operationId: cancelOrder
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Заказ отменен
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Заказ не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # Supply Service
+  /supplies/page/{page}/limit/{limit}:
+    get:
+      tags:
+        - Supply
+      summary: Получить список поставок
+      description: Возвращает пагинированный список поставок.
+      operationId: listSupplies
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: page
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+        - name: limit
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            example: 10
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [ORDERED, IN_TRANSIT, RECEIVED, CANCELLED]
+      responses:
+        "200":
+          description: Список поставок
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  supplies:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Supply"
+                  total:
+                    type: integer
+                    example: 50
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /supplies:
+    post:
+      tags:
+        - Supply
+      summary: Создать поставку
+      description: Создает новый заказ на поставку.
+      operationId: createSupply
+      security:
+        - CookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                supplierName:
+                  type: string
+                  example: TechSupplier Inc.
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      productId:
+                        type: integer
+                        example: 1
+                      quantity:
+                        type: integer
+                        example: 50
+                    required:
+                      - productId
+                      - quantity
+                expectedDelivery:
+                  type: string
+                  format: date-time
+                  example: 2025-04-30T10:00:00Z
+              required:
+                - supplierName
+                - items
+                - expectedDelivery
+      responses:
+        "201":
+          description: Поставка создана
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Supply"
+        "400":
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /supplies/{id}:
+    get:
+      tags:
+        - Supply
+      summary: Получить поставку по ID
+      description: Возвращает информацию о поставке по её ID.
+      operationId: getSupply
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Информация о поставке
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Supply"
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Поставка не найдена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      tags:
+        - Supply
+      summary: Обновить статус поставки
+      description: Обновляет статус существующей поставки.
+      operationId: updateSupplyStatus
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [ORDERED, IN_TRANSIT, RECEIVED, CANCELLED]
+                  example: RECEIVED
+              required:
+                - status
+      responses:
+        "200":
+          description: Статус поставки обновлен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Supply"
+        "400":
+          description: Неверный статус
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Поставка не найдена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - Supply
+      summary: Отменить поставку
+      description: Отменяет существующую поставку.
+      operationId: cancelSupply
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Поставка отменена
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Поставка не найдена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # User Management Service
+  /users/page/{page}/limit/{limit}:
+    get:
+      tags:
+        - Users
+      summary: Получить список пользователей
+      description: Возвращает пагинированный список пользователей.
+      operationId: listUsers
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: page
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+        - name: limit
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            example: 10
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [ADMIN, MANAGER, EMPLOYEE]
+      responses:
+        "200":
+          description: Список пользователей
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/User"
+                  total:
+                    type: integer
+                    example: 50
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Доступ запрещен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /users/{id}:
+    get:
+      tags:
+        - Users
+      summary: Получить пользователя по ID
+      description: Возвращает информацию о пользователе по его ID.
+      operationId: getUserById
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Информация о пользователе
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Доступ запрещен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Пользователь не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    put:
+      tags:
+        - Users
+      summary: Обновить пользователя
+      description: Обновляет информацию о пользователе (например, email или роль). Только для админов.
+      operationId: updateUser
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: updateduser@example.com
+                role:
+                  type: string
+                  enum: [ADMIN, MANAGER, EMPLOYEE]
+                  example: MANAGER
+              required:
+                - email
+                - role
+      responses:
+        "200":
+          description: Пользователь обновлен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Доступ запрещен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Пользователь не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - Users
+      summary: Удалить пользователя
+      description: Удаляет пользователя по ID. Только для админов.
+      operationId: deleteUser
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Пользователь удален
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Доступ запрещен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Пользователь не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /users/{id}/role:
+    patch:
+      tags:
+        - Users
+      summary: Назначить роль пользователю
+      description: Обновляет роль пользователя. Только для админов.
+      operationId: assignRole
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  type: string
+                  enum: [ADMIN, MANAGER, EMPLOYEE]
+                  example: MANAGER
+              required:
+                - role
+      responses:
+        "200":
+          description: Роль обновлена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Доступ запрещен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Пользователь не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # Reporting Service
+  /reports/stock:
+    get:
+      tags:
+        - Reporting
+      summary: Отчет по запасам
+      description: Генерирует отчет о текущих уровнях запасов на складах.
+      operationId: getStockReport
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: warehouseId
+          in: query
+          schema:
+            type: integer
+        - name: lowStockThreshold
+          in: query
+          schema:
+            type: integer
+            example: 10
+      responses:
+        "200":
+          description: Отчет по запасам
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockReport"
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Склад не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /reports/sales:
+    get:
+      tags:
+        - Reporting
+      summary: Отчет по продажам
+      description: Генерирует отчет по продажам за указанный период.
+      operationId: getSalesReport
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+            example: 2025-04-01T00:00:00Z
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+            example: 2025-04-30T23:59:59Z
+      responses:
+        "200":
+          description: Отчет по продажам
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesReport"
+        "400":
+          description: Неверный диапазон дат
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /reports/movement:
+    get:
+      tags:
+        - Reporting
+      summary: Отчет по движению запасов
+      description: Генерирует отчет о движении запасов (поступления, списания, корректировки) за указанный период и склад.
+      operationId: getMovementReport
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: warehouseId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+            example: 2025-04-01T00:00:00Z
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+            example: 2025-04-30T23:59:59Z
+      responses:
+        "200":
+          description: Отчет по движению запасов
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MovementReport"
+        "400":
+          description: Неверный диапазон дат или склад
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Склад не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /reports/supplies:
+    get:
+      tags:
+        - Reporting
+      summary: Отчет по поставкам
+      description: Генерирует отчет по поставкам за указанный период.
+      operationId: getSuppliesReport
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+            example: 2025-04-01T00:00:00Z
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+            example: 2025-04-30T23:59:59Z
+      responses:
+        "200":
+          description: Отчет по поставкам
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupplyReport"
+        "400":
+          description: Неверный диапазон дат
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
