@@ -1,0 +1,721 @@
+openapi: 3.0.3
+info:
+  title: Core Service API
+  description: API для управления товарами, заказами и клиентами в системе Inventory Management
+  version: 1.0.0
+servers:
+  - url: https://api.inventory.example.com/v2/core
+    description: Основной сервер Core Service
+tags:
+  - name: Items
+    description: Операции с товарами
+  - name: Orders
+    description: Операции с заказами
+  - name: Customers
+    description: Операции с клиентами
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Item:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Laptop"
+        article:
+          type: string
+          example: "LP001"
+        category:
+          type: string
+          example: "Electronics"
+        quantity:
+          type: integer
+          example: 50
+        location:
+          type: string
+          example: "Main Warehouse"
+        status:
+          type: string
+          enum: ["available", "out_of_stock", "discontinued"]
+          example: "available"
+      required:
+        - name
+        - article
+        - category
+        - quantity
+        - location
+        - status
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        orderNumber:
+          type: string
+          example: "ORD001"
+        customer:
+          type: string
+          example: "Alice Johnson"
+        date:
+          type: string
+          format: date-time
+          example: "2025-04-28T10:00:00Z"
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              itemId:
+                type: integer
+                example: 1
+              quantity:
+                type: integer
+                example: 2
+              price:
+                type: number
+                format: float
+                example: 250.00
+        totalAmount:
+          type: number
+          format: float
+          example: 520.00
+        status:
+          type: string
+          enum: ["pending", "processing", "shipped", "delivered", "canceled"]
+          example: "pending"
+      required:
+        - orderNumber
+        - customer
+        - date
+        - items
+        - totalAmount
+        - status
+    Customer:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Alice Johnson"
+        email:
+          type: string
+          example: "alice@example.com"
+        phone:
+          type: string
+          example: "555-123-4567"
+        orders:
+          type: array
+          items:
+            type: string
+            example: "ORD001"
+        totalPurchases:
+          type: number
+          format: float
+          example: 1500.00
+        lastOrder:
+          type: string
+          format: date-time
+          example: "2025-04-28T10:00:00Z"
+        status:
+          type: string
+          enum: ["active", "inactive"]
+          example: "active"
+      required:
+        - name
+        - email
+        - phone
+        - status
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        orderId:
+          type: integer
+          example: 1
+        amount:
+          type: number
+          format: float
+          example: 520.00
+        issuedDate:
+          type: string
+          format: date-time
+          example: "2025-04-28T10:00:00Z"
+      required:
+        - orderId
+        - amount
+        - issuedDate
+    EmailRequest:
+      type: object
+      properties:
+        subject:
+          type: string
+          example: "Подтверждение заказа"
+        body:
+          type: string
+          example: "Ваш заказ успешно подтвержден."
+      required:
+        - subject
+        - body
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          example: "INVALID_REQUEST"
+        message:
+          type: string
+          example: "Неверный запрос"
+      required:
+        - code
+        - message
+paths:
+  /items:
+    get:
+      summary: Получить все товары
+      operationId: getAllItems
+      tags:
+        - Items
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Список всех товаров
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Item"
+        "400":
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+        - BearerAuth: []
+    post:
+      summary: Добавить новый товар
+      operationId: addItem
+      tags:
+        - Items
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Item"
+      responses:
+        "201":
+          description: Товар успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Item"
+        "400":
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+        - BearerAuth: []
+  /items/{id}:
+    get:
+      summary: Просмотр деталей товара
+      operationId: getItemDetails
+      tags:
+        - Items
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Детали товара
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Item"
+        "404":
+          description: Товар не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+        - BearerAuth: []
+    put:
+      summary: Обновить товар
+      operationId: updateItem
+      tags:
+        - Items
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Item"
+      responses:
+        "200":
+          description: Товар успешно обновлен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Item"
+        "404":
+          description: Товар не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+        - BearerAuth: []
+    delete:
+      summary: Удалить товар
+      operationId: deleteItem
+      tags:
+        - Items
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Товар успешно удален
+        "404":
+          description: Товар не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+        - BearerAuth: []
+  /orders:
+    get:
+      summary: Получить все заказы
+      operationId: getAllOrders
+      tags:
+        - Orders
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Список всех заказов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Order"
+        "400":
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+        - BearerAuth: []
+    post:
+      summary: Создать новый заказ
+      operationId: addOrder
+      tags:
+        - Orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Order"
+      responses:
+        "201":
+          description: Заказ успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "400":
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+        - BearerAuth: []
+  /orders/{id}:
+    get:
+      summary: Просмотр деталей заказа
+      operationId: getOrderDetails
+      tags:
+        - Orders
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Детали заказа
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "404":
+          description: Заказ не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+        - BearerAuth: []
+  /orders/{id}/invoice:
+    post:
+      summary: Сгенерировать счёт
+      operationId: generateInvoice
+      tags:
+        - Orders
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "201":
+          description: Счёт успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+        "404":
+          description: Заказ не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+        - BearerAuth: []
+  /orders/{id}/status:
+    put:
+      summary: Обновить статус заказа
+      operationId: updateOrderStatus
+      tags:
+        - Orders
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                    [
+                      "pending",
+                      "processing",
+                      "shipped",
+                      "delivered",
+                      "canceled",
+                    ]
+                  example: "processing"
+              required:
+                - status
+      responses:
+        "200":
+          description: Статус заказа успешно обновлен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "404":
+          description: Заказ не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+        - BearerAuth: []
+  /orders/{id}/cancel:
+    post:
+      summary: Отменить заказ
+      operationId: cancelOrder
+      tags:
+        - Orders
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Заказ успешно отменен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "404":
+          description: Заказ не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+        - BearerAuth: []
+  /customers:
+    get:
+      summary: Получить всех клиентов
+      operationId: getAllCustomers
+      tags:
+        - Customers
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Список всех клиентов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Customer"
+        "400":
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+        - BearerAuth: []
+    post:
+      summary: Добавить нового клиента
+      operationId: addCustomer
+      tags:
+        - Customers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Customer"
+      responses:
+        "201":
+          description: Клиент успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+        "400":
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+        - BearerAuth: []
+  /customers/{id}:
+    get:
+      summary: Просмотр деталей клиента
+      operationId: getCustomerDetails
+      tags:
+        - Customers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Детали клиента
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+        "404":
+          description: Клиент не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+        - BearerAuth: []
+    put:
+      summary: Обновить клиента
+      operationId: updateCustomer
+      tags:
+        - Customers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Customer"
+      responses:
+        "200":
+          description: Клиент успешно обновлен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+        "404":
+          description: Клиент не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+        - BearerAuth: []
+    delete:
+      summary: Удалить клиента
+      operationId: deleteCustomer
+      tags:
+        - Customers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Клиент успешно удален
+        "404":
+          description: Клиент не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+        - BearerAuth: []
+  /customers/{id}/orders:
+    get:
+      summary: Просмотр заказов клиента
+      operationId: getCustomerOrders
+      tags:
+        - Customers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Список заказов клиента
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Order"
+        "404":
+          description: Клиент не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+        - BearerAuth: []
+  /customers/{id}/email:
+    post:
+      summary: Отправить email клиенту
+      operationId: sendCustomerEmail
+      tags:
+        - Customers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailRequest"
+      responses:
+        "200":
+          description: Email успешно отправлен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Email успешно отправлен"
+        "404":
+          description: Клиент не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+        - BearerAuth: []
+security:
+  - BearerAuth: []

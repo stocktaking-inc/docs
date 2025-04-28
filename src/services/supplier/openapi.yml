@@ -1,0 +1,278 @@
+openapi: 3.0.3
+info:
+  title: Supplier Service API
+  description: API для управления поставщиками в системе Inventory Management
+  version: 1.0.0
+servers:
+  - url: https://api.inventory.example.com/v2/supplier
+    description: Основной сервер Supplier Service
+tags:
+  - name: Suppliers
+    description: Операции с поставщиками
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Supplier:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "TechSupplier Inc."
+        contactPerson:
+          type: string
+          example: "John Doe"
+        email:
+          type: string
+          example: "john@techsupplier.com"
+        phone:
+          type: string
+          example: "123-456-7890"
+        category:
+          type: string
+          example: "Electronics"
+        items:
+          type: array
+          items:
+            type: string
+            example: "Laptop"
+        status:
+          type: string
+          enum: ["active", "inactive"]
+          example: "active"
+      required:
+        - name
+        - contactPerson
+        - email
+        - phone
+        - category
+        - status
+    Item:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Laptop"
+        article:
+          type: string
+          example: "LP001"
+        category:
+          type: string
+          example: "Electronics"
+        quantity:
+          type: integer
+          example: 50
+        location:
+          type: string
+          example: "Main Warehouse"
+        status:
+          type: string
+          enum: ["available", "out_of_stock", "discontinued"]
+          example: "available"
+      required:
+        - name
+        - article
+        - category
+        - quantity
+        - location
+        - status
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          example: "INVALID_REQUEST"
+        message:
+          type: string
+          example: "Неверный запрос"
+      required:
+        - code
+        - message
+paths:
+  /suppliers:
+    get:
+      summary: Получить всех поставщиков
+      operationId: getAllSuppliers
+      tags:
+        - Suppliers
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Список всех поставщиков
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Supplier"
+        "400":
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+        - BearerAuth: []
+    post:
+      summary: Добавить нового поставщика
+      operationId: addSupplier
+      tags:
+        - Suppliers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Supplier"
+      responses:
+        "201":
+          description: Поставщик успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Supplier"
+        "400":
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+        - BearerAuth: []
+  /suppliers/{id}:
+    get:
+      summary: Просмотр деталей поставщика
+      operationId: getSupplierDetails
+      tags:
+        - Suppliers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Детали поставщика
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Supplier"
+        "404":
+          description: Поставщик не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+        - BearerAuth: []
+    put:
+      summary: Обновить поставщика
+      operationId: updateSupplier
+      tags:
+        - Suppliers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Supplier"
+      responses:
+        "200":
+          description: Поставщик успешно обновлен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Supplier"
+        "404":
+          description: Поставщик не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+        - BearerAuth: []
+    delete:
+      summary: Удалить поставщика
+      operationId: deleteSupplier
+      tags:
+        - Suppliers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Поставщик успешно удален
+        "404":
+          description: Поставщик не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+        - BearerAuth: []
+  /suppliers/{id}/items:
+    get:
+      summary: Просмотр товаров поставщика
+      operationId: getSupplierItems
+      tags:
+        - Suppliers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Список товаров поставщика
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Item"
+        "404":
+          description: Поставщик не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: Сервис товаров недоступен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+        - BearerAuth: []
+security:
+  - BearerAuth: []

@@ -1,0 +1,147 @@
+openapi: 3.0.3
+info:
+  title: Auth Service API
+  description: API для управления аутентификацией и авторизацией в системе Inventory Management
+  version: 1.0.0
+servers:
+  - url: https://api.inventory.example.com/v2/auth
+    description: Основной сервер Auth Service
+tags:
+  - name: Auth
+    description: Операции аутентификации и регистрации
+components:
+  schemas:
+    RegisterRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          example: "user@example.com"
+        password:
+          type: string
+          example: "password123"
+        name:
+          type: string
+          example: "John Doe"
+      required:
+        - email
+        - password
+        - name
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          example: "user@example.com"
+        password:
+          type: string
+          example: "password123"
+      required:
+        - email
+        - password
+    TokenResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refreshToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      required:
+        - accessToken
+        - refreshToken
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          example: "INVALID_REQUEST"
+        message:
+          type: string
+          example: "Неверный запрос"
+      required:
+        - code
+        - message
+paths:
+  /register:
+    post:
+      summary: Регистрация нового пользователя
+      operationId: registerUser
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Пользователь успешно зарегистрирован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "400":
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /login:
+    post:
+      summary: Вход пользователя
+      operationId: loginUser
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Успешный вход
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "401":
+          description: Неверные учетные данные
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /refresh:
+    post:
+      summary: Обновление токена
+      operationId: refreshToken
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken:
+                  type: string
+                  example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+              required:
+                - refreshToken
+      responses:
+        "200":
+          description: Токен успешно обновлен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "401":
+          description: Неверный refresh token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
