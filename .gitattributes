@@ -2,6 +2,7 @@
 *.yml      text eol=lf
 *.md       text eol=lf
 *.markdown text eol=lf
+*.png      binary
 
 *.yaml     diff
 *.yml      diff
