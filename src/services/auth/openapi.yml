@@ -63,6 +63,11 @@ components:
       required:
         - code
         - message
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
 paths:
   /register:
     post:
@@ -141,6 +146,23 @@ paths:
                 $ref: "#/components/schemas/TokenResponse"
         "401":
           description: Неверный refresh token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /verify:
+    get:
+      summary: Проверка валидности токена
+      operationId: verifyToken
+      tags:
+        - Auth
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Токен валиден
+        "401":
+          description: Неверный токен
           content:
             application/json:
               schema:
